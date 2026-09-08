@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import debounce from 'lodash.debounce';
 
 // Initialize Supabase Client
-const supabaseUrl = import.meta.env.VITESUPABASEURL;
-const supabaseKey = import.meta.env.VITESUPABASEANONKEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASEURL;
+const supabaseKey = import.meta.env.VITE_SUPABASEANONKEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function App() {
