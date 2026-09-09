@@ -12,8 +12,9 @@ export default function App() {
   const [activePath, setActivePath] = useState(null);
   const [syncStatus, setSyncStatus] = useState('Connecting...');
   
-  // Drag and Drop State
+  // Drag and Drop & Accordion State
   const [dragContext, setDragContext] = useState(null);
+  const [expanded, setExpanded] = useState({}); // Tracks which nodes are open
 
   const getClone = () => JSON.parse(JSON.stringify(kbData));
 
@@ -62,6 +63,12 @@ export default function App() {
     const finalJson = JSON.stringify(kbData, null, 2);
     navigator.clipboard.writeText(finalJson);
     alert("Perfectly formatted JSON copied to clipboard!");
+  };
+
+  // --- ACCORDION TOGGLE ---
+  const toggleExpand = (e, key) => {
+    e.stopPropagation();
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   // --- DRAG AND DROP FUNCTIONS ---
@@ -117,7 +124,6 @@ export default function App() {
     }
 
     setDragContext(null);
-    // Safely reset active item if sidebar layout was changed to prevent index bugs
     if (dragContext.type !== 'detail') setActivePath(null);
   };
 
@@ -133,6 +139,7 @@ export default function App() {
   const addModule = () => {
     const newData = getClone();
     newData.push({ id: `module-${Date.now()}`, title: "New Module", description: "", topics: [] });
+    setExpanded(prev => ({ ...prev, [`m-${newData.length - 1}`]: true }));
     updateData(newData);
   };
 
@@ -140,6 +147,7 @@ export default function App() {
     const newData = getClone();
     if (!newData[m].topics) newData[m].topics = [];
     newData[m].topics.push({ id: `topic-${Date.now()}`, title: "New Topic", description: "", groups: [] });
+    setExpanded(prev => ({ ...prev, [`m-${m}`]: true, [`t-${m}-${newData[m].topics.length - 1}`]: true }));
     updateData(newData);
   };
 
@@ -147,6 +155,7 @@ export default function App() {
     const newData = getClone();
     if (!newData[m].topics[t].groups) newData[m].topics[t].groups = [];
     newData[m].topics[t].groups.push({ id: `group-${Date.now()}`, title: "New Group", description: "", items: [] });
+    setExpanded(prev => ({ ...prev, [`t-${m}-${t}`]: true, [`g-${m}-${t}-${newData[m].topics[t].groups.length - 1}`]: true }));
     updateData(newData);
   };
 
@@ -160,6 +169,7 @@ export default function App() {
       workflow: "",
       details: [{ type: "text", content: "New content here..." }] 
     });
+    setExpanded(prev => ({ ...prev, [`g-${m}-${t}-${g}`]: true }));
     updateData(newData);
   };
 
@@ -283,7 +293,7 @@ export default function App() {
           </span>
         </div>
         
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-4">
           {kbData.map((module, m) => (
             <div 
               key={module.id} 
@@ -291,9 +301,12 @@ export default function App() {
               onDragStart={(e) => onDragStart(e, { type: 'module', m })} 
               onDragOver={onDragOver} 
               onDrop={(e) => onDrop(e, { type: 'module', m })}
-              className={`border-l-4 border-blue-200 pl-3 bg-white p-2 rounded shadow-sm mb-4 transition-all ${dragContext?.type === 'module' && dragContext.m === m ? 'opacity-40 border-dashed border-gray-400 bg-gray-50' : ''}`}
+              className={`border-l-4 border-blue-200 pl-2 bg-white p-2 rounded shadow-sm transition-all ${dragContext?.type === 'module' && dragContext.m === m ? 'opacity-40 border-dashed border-gray-400 bg-gray-50' : ''}`}
             >
               <div className="flex items-center mb-1">
+                <button type="button" onClick={(e) => toggleExpand(e, `m-${m}`)} className="mr-1 w-5 h-5 flex items-center justify-center text-xs text-blue-500 hover:bg-blue-50 rounded transition-colors">
+                  {expanded[`m-${m}`] ? '▼' : '▶'}
+                </button>
                 <span className="cursor-grab text-blue-300 hover:text-blue-500 mr-2 text-lg" title="Drag to reorder">⋮⋮</span>
                 <input 
                   className="font-extrabold text-sm uppercase text-blue-900 w-full bg-transparent focus:outline-blue-500" 
@@ -303,122 +316,143 @@ export default function App() {
                 />
                 <button onClick={() => removeModule(m)} className="text-red-400 hover:text-red-600 px-2 text-lg font-bold">×</button>
               </div>
-              <input 
-                className="text-xs font-mono text-gray-400 w-full bg-transparent focus:outline-none mb-1 pl-6" 
-                value={module.id || ''} 
-                onChange={(e) => updateNodeField(m, null, null, 'id', e.target.value)}
-                placeholder="module-id"
-              />
-              <textarea 
-                className="text-xs text-gray-500 w-full bg-gray-50 p-1 rounded border border-gray-100 focus:outline-blue-300 resize-none mb-3" 
-                value={module.description || ''} 
-                onChange={(e) => {
-                  e.target.style.height = 'inherit'; e.target.style.height = `${e.target.scrollHeight}px`;
-                  updateNodeField(m, null, null, 'description', e.target.value);
-                }}
-                placeholder="Module description..."
-              />
               
-              {module.topics?.map((topic, t) => (
-                <div 
-                  key={topic.id} 
-                  draggable 
-                  onDragStart={(e) => onDragStart(e, { type: 'topic', m, t })} 
-                  onDragOver={onDragOver} 
-                  onDrop={(e) => onDrop(e, { type: 'topic', m, t })}
-                  className={`ml-2 mb-4 border-l-2 border-indigo-100 pl-2 transition-all ${dragContext?.type === 'topic' && dragContext.m === m && dragContext.t === t ? 'opacity-40 border-dashed border-gray-400 bg-gray-50 rounded p-1' : ''}`}
-                >
-                  <div className="flex items-center mb-1">
-                    <span className="cursor-grab text-indigo-300 hover:text-indigo-500 mr-2" title="Drag to reorder">⋮⋮</span>
-                    <input 
-                      className="font-bold text-gray-800 text-sm w-full bg-transparent focus:outline-indigo-400" 
-                      value={topic.title || ''} 
-                      onChange={(e) => updateNodeField(m, t, null, 'title', e.target.value)}
-                      placeholder="Topic Title"
-                    />
-                    <button onClick={() => removeTopic(m, t)} className="text-red-400 hover:text-red-600 px-2 text-lg font-bold">×</button>
-                  </div>
+              {expanded[`m-${m}`] && (
+                <div className="pl-6 mt-2">
                   <input 
-                    className="text-xs font-mono text-gray-400 w-full bg-transparent focus:outline-none mb-1 pl-6" 
-                    value={topic.id || ''} 
-                    onChange={(e) => updateNodeField(m, t, null, 'id', e.target.value)}
-                    placeholder="topic-id"
+                    className="text-xs font-mono text-gray-400 w-full bg-transparent focus:outline-none mb-1" 
+                    value={module.id || ''} 
+                    onChange={(e) => updateNodeField(m, null, null, 'id', e.target.value)}
+                    placeholder="module-id"
                   />
                   <textarea 
-                    className="text-xs text-gray-500 w-full bg-gray-50 p-1 rounded border border-gray-100 focus:outline-indigo-300 resize-none mb-2" 
-                    value={topic.description || ''} 
+                    className="text-xs text-gray-500 w-full bg-gray-50 p-1 rounded border border-gray-100 focus:outline-blue-300 resize-none mb-3" 
+                    value={module.description || ''} 
                     onChange={(e) => {
                       e.target.style.height = 'inherit'; e.target.style.height = `${e.target.scrollHeight}px`;
-                      updateNodeField(m, t, null, 'description', e.target.value);
+                      updateNodeField(m, null, null, 'description', e.target.value);
                     }}
-                    placeholder="Topic description..."
+                    placeholder="Module description..."
                   />
                   
-                  {topic.groups?.map((group, g) => (
+                  {module.topics?.map((topic, t) => (
                     <div 
-                      key={group.id} 
+                      key={topic.id} 
                       draggable 
-                      onDragStart={(e) => onDragStart(e, { type: 'group', m, t, g })} 
+                      onDragStart={(e) => onDragStart(e, { type: 'topic', m, t })} 
                       onDragOver={onDragOver} 
-                      onDrop={(e) => onDrop(e, { type: 'group', m, t, g })}
-                      className={`ml-2 mb-3 border-l-2 border-gray-100 pl-2 transition-all ${dragContext?.type === 'group' && dragContext.m === m && dragContext.t === t && dragContext.g === g ? 'opacity-40 border-dashed border-gray-400 bg-gray-50 rounded p-1' : ''}`}
+                      onDrop={(e) => onDrop(e, { type: 'topic', m, t })}
+                      className={`mb-3 border-l-2 border-indigo-100 pl-2 transition-all ${dragContext?.type === 'topic' && dragContext.m === m && dragContext.t === t ? 'opacity-40 border-dashed border-gray-400 bg-gray-50 rounded p-1' : ''}`}
                     >
                       <div className="flex items-center mb-1">
-                        <span className="cursor-grab text-gray-300 hover:text-gray-500 mr-2" title="Drag to reorder">⋮⋮</span>
+                        <button type="button" onClick={(e) => toggleExpand(e, `t-${m}-${t}`)} className="mr-1 w-5 h-5 flex items-center justify-center text-xs text-indigo-400 hover:bg-indigo-50 rounded transition-colors">
+                          {expanded[`t-${m}-${t}`] ? '▼' : '▶'}
+                        </button>
+                        <span className="cursor-grab text-indigo-300 hover:text-indigo-500 mr-2" title="Drag to reorder">⋮⋮</span>
                         <input 
-                          className="text-xs font-bold text-gray-600 w-full bg-transparent focus:outline-gray-400" 
-                          value={group.title || ''} 
-                          onChange={(e) => updateNodeField(m, t, g, 'title', e.target.value)}
-                          placeholder="Group Title"
+                          className="font-bold text-gray-800 text-sm w-full bg-transparent focus:outline-indigo-400" 
+                          value={topic.title || ''} 
+                          onChange={(e) => updateNodeField(m, t, null, 'title', e.target.value)}
+                          placeholder="Topic Title"
                         />
-                        <button onClick={() => removeGroup(m, t, g)} className="text-red-400 hover:text-red-600 px-2 text-lg font-bold">×</button>
+                        <button onClick={() => removeTopic(m, t)} className="text-red-400 hover:text-red-600 px-2 text-lg font-bold">×</button>
                       </div>
-                      <input 
-                        className="text-xs font-mono text-gray-400 w-full bg-transparent focus:outline-none mb-1 pl-6" 
-                        value={group.id || ''} 
-                        onChange={(e) => updateNodeField(m, t, g, 'id', e.target.value)}
-                        placeholder="group-id"
-                      />
-                      <textarea 
-                        className="text-xs text-gray-500 w-full bg-gray-50 p-1 rounded border border-gray-100 focus:outline-gray-300 resize-none mb-2" 
-                        value={group.description || ''} 
-                        onChange={(e) => {
-                          e.target.style.height = 'inherit'; e.target.style.height = `${e.target.scrollHeight}px`;
-                          updateNodeField(m, t, g, 'description', e.target.value);
-                        }}
-                        placeholder="Group description..."
-                      />
                       
-                      {group.items?.map((item, i) => (
-                        <div 
-                          key={item.id} 
-                          draggable 
-                          onDragStart={(e) => onDragStart(e, { type: 'item', m, t, g, i })} 
-                          onDragOver={onDragOver} 
-                          onDrop={(e) => onDrop(e, { type: 'item', m, t, g, i })}
-                          className={`flex items-center mb-1 transition-all ${dragContext?.type === 'item' && dragContext.m === m && dragContext.t === t && dragContext.g === g && dragContext.i === i ? 'opacity-40 border-dashed border-gray-400 bg-gray-50 rounded p-1' : ''}`}
-                        >
-                          <span className="cursor-grab text-gray-300 hover:text-gray-500 mr-2 ml-1" title="Drag to reorder">⋮⋮</span>
-                          <button
-                            onClick={() => setActivePath({ m, t, g, i })}
-                            className={`flex-1 text-left px-3 py-1.5 text-sm rounded-md transition-colors ${
-                              activePath?.m === m && activePath?.t === t && activePath?.g === g && activePath?.i === i
-                                ? "bg-blue-100 text-blue-800 font-medium border-l-4 border-blue-600 shadow-sm" 
-                                : "text-gray-600 hover:bg-gray-100"
-                            }`}
-                          >
-                            {item.title || 'Untitled Item'}
-                          </button>
-                          <button onClick={() => removeItem(m, t, g, i)} className="text-red-400 hover:text-red-600 px-2 text-lg font-bold">×</button>
+                      {expanded[`t-${m}-${t}`] && (
+                        <div className="pl-6 mt-1">
+                          <input 
+                            className="text-xs font-mono text-gray-400 w-full bg-transparent focus:outline-none mb-1" 
+                            value={topic.id || ''} 
+                            onChange={(e) => updateNodeField(m, t, null, 'id', e.target.value)}
+                            placeholder="topic-id"
+                          />
+                          <textarea 
+                            className="text-xs text-gray-500 w-full bg-gray-50 p-1 rounded border border-gray-100 focus:outline-indigo-300 resize-none mb-2" 
+                            value={topic.description || ''} 
+                            onChange={(e) => {
+                              e.target.style.height = 'inherit'; e.target.style.height = `${e.target.scrollHeight}px`;
+                              updateNodeField(m, t, null, 'description', e.target.value);
+                            }}
+                            placeholder="Topic description..."
+                          />
+                          
+                          {topic.groups?.map((group, g) => (
+                            <div 
+                              key={group.id} 
+                              draggable 
+                              onDragStart={(e) => onDragStart(e, { type: 'group', m, t, g })} 
+                              onDragOver={onDragOver} 
+                              onDrop={(e) => onDrop(e, { type: 'group', m, t, g })}
+                              className={`mb-2 border-l-2 border-gray-100 pl-2 transition-all ${dragContext?.type === 'group' && dragContext.m === m && dragContext.t === t && dragContext.g === g ? 'opacity-40 border-dashed border-gray-400 bg-gray-50 rounded p-1' : ''}`}
+                            >
+                              <div className="flex items-center mb-1">
+                                <button type="button" onClick={(e) => toggleExpand(e, `g-${m}-${t}-${g}`)} className="mr-1 w-5 h-5 flex items-center justify-center text-xs text-gray-400 hover:bg-gray-100 rounded transition-colors">
+                                  {expanded[`g-${m}-${t}-${g}`] ? '▼' : '▶'}
+                                </button>
+                                <span className="cursor-grab text-gray-300 hover:text-gray-500 mr-2" title="Drag to reorder">⋮⋮</span>
+                                <input 
+                                  className="text-xs font-bold text-gray-600 w-full bg-transparent focus:outline-gray-400" 
+                                  value={group.title || ''} 
+                                  onChange={(e) => updateNodeField(m, t, g, 'title', e.target.value)}
+                                  placeholder="Group Title"
+                                />
+                                <button onClick={() => removeGroup(m, t, g)} className="text-red-400 hover:text-red-600 px-2 text-lg font-bold">×</button>
+                              </div>
+                              
+                              {expanded[`g-${m}-${t}-${g}`] && (
+                                <div className="pl-6 mt-1">
+                                  <input 
+                                    className="text-xs font-mono text-gray-400 w-full bg-transparent focus:outline-none mb-1" 
+                                    value={group.id || ''} 
+                                    onChange={(e) => updateNodeField(m, t, g, 'id', e.target.value)}
+                                    placeholder="group-id"
+                                  />
+                                  <textarea 
+                                    className="text-xs text-gray-500 w-full bg-gray-50 p-1 rounded border border-gray-100 focus:outline-gray-300 resize-none mb-2" 
+                                    value={group.description || ''} 
+                                    onChange={(e) => {
+                                      e.target.style.height = 'inherit'; e.target.style.height = `${e.target.scrollHeight}px`;
+                                      updateNodeField(m, t, g, 'description', e.target.value);
+                                    }}
+                                    placeholder="Group description..."
+                                  />
+                                  
+                                  {group.items?.map((item, i) => (
+                                    <div 
+                                      key={item.id} 
+                                      draggable 
+                                      onDragStart={(e) => onDragStart(e, { type: 'item', m, t, g, i })} 
+                                      onDragOver={onDragOver} 
+                                      onDrop={(e) => onDrop(e, { type: 'item', m, t, g, i })}
+                                      className={`flex items-center mb-1 transition-all ${dragContext?.type === 'item' && dragContext.m === m && dragContext.t === t && dragContext.g === g && dragContext.i === i ? 'opacity-40 border-dashed border-gray-400 bg-gray-50 rounded p-1' : ''}`}
+                                    >
+                                      <span className="cursor-grab text-gray-300 hover:text-gray-500 mr-2 ml-1" title="Drag to reorder">⋮⋮</span>
+                                      <button
+                                        onClick={() => setActivePath({ m, t, g, i })}
+                                        className={`flex-1 text-left px-3 py-1.5 text-sm rounded-md transition-colors ${
+                                          activePath?.m === m && activePath?.t === t && activePath?.g === g && activePath?.i === i
+                                            ? "bg-blue-100 text-blue-800 font-medium border-l-4 border-blue-600 shadow-sm" 
+                                            : "text-gray-600 hover:bg-gray-100"
+                                        }`}
+                                      >
+                                        {item.title || 'Untitled Item'}
+                                      </button>
+                                      <button onClick={() => removeItem(m, t, g, i)} className="text-red-400 hover:text-red-600 px-2 text-lg font-bold">×</button>
+                                    </div>
+                                  ))}
+                                  <button onClick={() => addItem(m, t, g)} className="text-xs text-blue-600 hover:text-blue-800 ml-8 mt-1 font-semibold block">+ Add Item</button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          <button onClick={() => addGroup(m, t)} className="text-xs text-indigo-500 hover:text-indigo-700 mt-1 font-semibold block">+ Add Group</button>
                         </div>
-                      ))}
-                      <button onClick={() => addItem(m, t, g)} className="text-xs text-blue-600 hover:text-blue-800 ml-8 mt-1 font-semibold">+ Add Item</button>
+                      )}
                     </div>
                   ))}
-                  <button onClick={() => addGroup(m, t)} className="text-xs text-indigo-500 hover:text-indigo-700 ml-6 mt-1 font-semibold">+ Add Group</button>
+                  <button onClick={() => addTopic(m)} className="text-xs text-blue-500 hover:text-blue-700 mt-1 font-semibold block">+ Add Topic</button>
                 </div>
-              ))}
-              <button onClick={() => addTopic(m)} className="text-xs text-blue-500 hover:text-blue-700 mt-2 font-semibold">+ Add Topic</button>
+              )}
             </div>
           ))}
           <button onClick={addModule} className="w-full py-3 border-2 border-dashed border-gray-300 rounded text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-colors font-bold">
@@ -517,7 +551,6 @@ export default function App() {
                       <button onClick={() => removeDetailBlock(dIndex)} className="text-red-500 hover:text-red-700 px-2 font-bold border-l border-gray-200">×</button>
                     </div>
                     
-                    {/* ... Component rendering stays exactly the same ... */}
                     {detail.type === 'workflow' && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mt-2">
                         <div className="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-1">Detail Workflow</div>
