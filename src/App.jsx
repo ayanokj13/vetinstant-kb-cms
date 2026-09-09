@@ -171,7 +171,8 @@ export default function App() {
       block.items = block.items || [{ content: oldContent }];
       delete block.content;
     } else if (newType === 'fields' || newType === 'buttons' || newType === 'options') {
-      block.items = block.items || [{ name: 'New Title', desc: oldContent }];
+      // Ensure helper is included when switching to these types
+      block.items = block.items || [{ name: 'New Title', desc: oldContent, helper: '' }];
       delete block.content;
     } 
     // Group string-based types
@@ -210,7 +211,7 @@ export default function App() {
     if (!block.items) block.items = [];
     
     if (type === 'bullets') block.items.push({ content: '' });
-    else block.items.push({ name: '', desc: '' });
+    else block.items.push({ name: '', desc: '', helper: '' }); // Added helper initialization
     
     updateData(newData);
   };
@@ -524,7 +525,7 @@ export default function App() {
                                 placeholder="Field Title (e.g. Body Weight)"
                               />
                               <textarea
-                                className="text-gray-600 bg-transparent border-none focus:outline-none w-full resize-none overflow-hidden"
+                                className="text-gray-600 bg-transparent border-none focus:outline-none w-full resize-none overflow-hidden mb-2"
                                 value={subItem.desc || ''}
                                 onChange={(e) => {
                                   e.target.style.height = 'inherit';
@@ -532,6 +533,12 @@ export default function App() {
                                   updateSubItem(dIndex, sIndex, 'desc', e.target.value);
                                 }}
                                 placeholder="Description text..."
+                              />
+                              <input
+                                className="text-gray-400 text-xs italic bg-transparent border-none focus:outline-none w-full mt-1"
+                                value={subItem.helper || ''}
+                                onChange={(e) => updateSubItem(dIndex, sIndex, 'helper', e.target.value)}
+                                placeholder="Optional helper text (e.g., Tooltip or extra info)..."
                               />
                             </div>
                           ))}
