@@ -166,16 +166,24 @@ export default function App() {
     const oldContent = block.content || '';
     block.type = newType;
     
+    // Group array-based types
     if (newType === 'bullets') {
-      block.items = [{ content: oldContent }];
+      block.items = block.items || [{ content: oldContent }];
       delete block.content;
-    } else if (newType === 'fields' || newType === 'buttons') {
-      block.items = [{ name: 'New Title', desc: oldContent }];
+    } else if (newType === 'fields' || newType === 'buttons' || newType === 'options') {
+      block.items = block.items || [{ name: 'New Title', desc: oldContent }];
       delete block.content;
-    } else if (newType === 'text') {
+    } 
+    // Group string-based types
+    else if (newType === 'text' || newType === 'workflow' || newType === 'notification' || newType === 'systemAction') {
       block.content = block.items ? block.items.map(b => b.content || b.desc || '').join('\n') : oldContent;
+      
+      if (!block.title && (newType === 'notification' || newType === 'systemAction')) {
+        block.title = "Alert Title";
+      }
+      
       delete block.items;
-      delete block.title;
+      if (newType === 'text' || newType === 'workflow') delete block.title;
     }
     updateData(newData);
   };
@@ -406,7 +414,11 @@ export default function App() {
                         <option value="text">Paragraph Text</option>
                         <option value="bullets">Pointers (Bullets)</option>
                         <option value="fields">Fields & Cards</option>
+                        <option value="buttons">Action Buttons</option>
+                        <option value="options">Options & Tags</option>
                         <option value="workflow">Workflow Bar</option>
+                        <option value="notification">Notification</option>
+                        <option value="systemAction">System Action</option>
                       </select>
                       <button onClick={() => removeDetailBlock(dIndex)} className="text-red-500 hover:text-red-700 px-2 font-bold border-l border-gray-200">×</button>
                     </div>
@@ -419,6 +431,27 @@ export default function App() {
                           value={detail.content || ''}
                           onChange={(e) => updateDetail(dIndex, 'content', e.target.value)}
                           placeholder="e.g. Patient Workbook → Vitals"
+                        />
+                      </div>
+                    )}
+
+                    {(detail.type === 'notification' || detail.type === 'systemAction') && (
+                      <div className={`mt-2 p-5 rounded-md border shadow-sm ${detail.type === 'notification' ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
+                        <input
+                          className={`font-bold uppercase tracking-wider mb-2 w-full bg-transparent border-none focus:outline-none text-sm ${detail.type === 'notification' ? 'text-blue-800' : 'text-red-800'}`}
+                          value={detail.title || ''}
+                          onChange={(e) => updateDetail(dIndex, 'title', e.target.value)}
+                          placeholder="Alert Title"
+                        />
+                        <textarea
+                          className={`w-full bg-transparent border-none focus:outline-none resize-none overflow-hidden text-lg ${detail.type === 'notification' ? 'text-blue-900' : 'text-red-900'}`}
+                          value={detail.content || ''}
+                          onChange={(e) => {
+                            e.target.style.height = 'inherit';
+                            e.target.style.height = `${e.target.scrollHeight}px`;
+                            updateDetail(dIndex, 'content', e.target.value);
+                          }}
+                          placeholder="Enter message..."
                         />
                       </div>
                     )}
@@ -469,7 +502,7 @@ export default function App() {
                       </div>
                     )}
 
-                    {(detail.type === 'fields' || detail.type === 'buttons') && (
+                    {(detail.type === 'fields' || detail.type === 'buttons' || detail.type === 'options') && (
                       <div className="mt-2 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                         <div className="flex items-center mb-5 border-b border-gray-100 pb-3">
                           <span className="text-blue-600 mr-2 font-bold text-xl">ⓘ</span>
@@ -477,7 +510,7 @@ export default function App() {
                             className="font-bold text-xl text-gray-900 bg-transparent border-none focus:outline-none w-full"
                             value={detail.title || ''}
                             onChange={(e) => updateDetail(dIndex, 'title', e.target.value)}
-                            placeholder="Section Title (e.g., Form Fields & Details)"
+                            placeholder={`Section Title (e.g., ${detail.type.charAt(0).toUpperCase() + detail.type.slice(1)} & Details)`}
                           />
                         </div>
                         
@@ -504,7 +537,7 @@ export default function App() {
                           ))}
                         </div>
                         <button onClick={() => addArrayItem(dIndex, 'fields')} className="text-sm text-blue-600 hover:text-blue-800 mt-4 font-medium bg-blue-50 px-3 py-1 rounded">
-                          + Add Field Card
+                          + Add Card
                         </button>
                       </div>
                     )}
