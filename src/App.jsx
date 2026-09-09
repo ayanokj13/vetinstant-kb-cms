@@ -519,164 +519,187 @@ export default function App() {
 
               </div>
               
-              <div className="space-y-6">
-                {activeItem.details?.map((detail, dIndex) => (
-                  <div 
-                    key={dIndex} 
-                    draggable 
-                    onDragStart={(e) => onDragStart(e, { type: 'detail', dIndex })} 
-                    onDragOver={onDragOver} 
-                    onDrop={(e) => onDrop(e, { type: 'detail', dIndex })}
-                    className={`relative group border border-transparent hover:border-blue-100 hover:bg-blue-50/30 rounded-lg p-4 transition-all ${dragContext?.type === 'detail' && dragContext.dIndex === dIndex ? 'opacity-40 border-dashed border-gray-400 bg-gray-50' : ''}`}
-                  >
-                    
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex items-center space-x-2 bg-white shadow border border-gray-200 rounded p-1 transition-opacity z-10">
-                      <div className="cursor-grab text-gray-400 hover:text-gray-600 px-2 border-r border-gray-200" title="Drag to reorder block">
-                        ⋮⋮
-                      </div>
-                      <select 
-                        value={detail.type} 
-                        onChange={(e) => changeDetailType(dIndex, e.target.value)}
-                        className="text-xs border-none bg-transparent text-gray-700 font-medium focus:outline-none cursor-pointer"
-                      >
-                        <option value="text">Paragraph Text</option>
-                        <option value="bullets">Pointers (Bullets)</option>
-                        <option value="fields">Fields & Cards</option>
-                        <option value="buttons">Action Buttons</option>
-                        <option value="options">Options & Tags</option>
-                        <option value="workflow">Workflow Bar</option>
-                        <option value="notification">Notification</option>
-                        <option value="systemAction">System Action</option>
-                      </select>
-                      <button onClick={() => removeDetailBlock(dIndex)} className="text-red-500 hover:text-red-700 px-2 font-bold border-l border-gray-200">×</button>
-                    </div>
-                    
-                    {detail.type === 'workflow' && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mt-2">
-                        <div className="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-1">Detail Workflow</div>
-                        <input
-                          className="w-full bg-transparent border-none focus:outline-none text-yellow-900 font-medium"
-                          value={detail.content || ''}
-                          onChange={(e) => updateDetail(dIndex, 'content', e.target.value)}
-                          placeholder="e.g. Patient Workbook → Vitals"
-                        />
-                      </div>
-                    )}
+              <div className="space-y-4">
+                {activeItem.details?.map((detail, dIndex) => {
+                  const detailKey = `d-${activePath.m}-${activePath.t}-${activePath.g}-${activePath.i}-${dIndex}`;
+                  const isDetailExpanded = expanded[detailKey] !== false; // Defaults to true/expanded
 
-                    {(detail.type === 'notification' || detail.type === 'systemAction') && (
-                      <div className={`mt-2 p-5 rounded-md border shadow-sm ${detail.type === 'notification' ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
-                        <input
-                          className={`font-bold uppercase tracking-wider mb-2 w-full bg-transparent border-none focus:outline-none text-sm ${detail.type === 'notification' ? 'text-blue-800' : 'text-red-800'}`}
-                          value={detail.title || ''}
-                          onChange={(e) => updateDetail(dIndex, 'title', e.target.value)}
-                          placeholder="Alert Title"
-                        />
-                        <textarea
-                          className={`w-full bg-transparent border-none focus:outline-none resize-none overflow-hidden text-lg ${detail.type === 'notification' ? 'text-blue-900' : 'text-red-900'}`}
-                          value={detail.content || ''}
-                          onChange={(e) => {
-                            e.target.style.height = 'inherit';
-                            e.target.style.height = `${e.target.scrollHeight}px`;
-                            updateDetail(dIndex, 'content', e.target.value);
-                          }}
-                          placeholder="Enter message..."
-                        />
-                      </div>
-                    )}
-
-                    {detail.type === 'text' && (
-                      <textarea
-                        className="w-full bg-transparent border-none focus:outline-none text-gray-700 resize-none overflow-hidden mt-2 text-lg"
-                        value={detail.content || ''}
-                        onChange={(e) => {
-                          e.target.style.height = 'inherit';
-                          e.target.style.height = `${e.target.scrollHeight}px`;
-                          updateDetail(dIndex, 'content', e.target.value);
-                        }}
-                        placeholder="Enter paragraph text..."
-                      />
-                    )}
-
-                    {detail.type === 'bullets' && (
-                      <div className="mt-2 bg-white p-4 rounded-md border border-gray-200 shadow-sm">
-                        {detail.title !== undefined && (
-                           <input 
-                             className="font-bold text-gray-900 bg-transparent border-none focus:outline-none w-full mb-3 text-lg"
-                             value={detail.title || ''}
-                             onChange={(e) => updateDetail(dIndex, 'title', e.target.value)}
-                             placeholder="Optional List Title"
-                           />
-                        )}
-                        <ul className="space-y-3">
-                          {detail.items?.map((subItem, sIndex) => (
-                            <li key={sIndex} className="flex items-start">
-                              <span className="text-blue-500 font-bold mr-3 mt-1">•</span>
-                              <textarea
-                                className="flex-1 bg-transparent border-none focus:outline-none text-gray-700 resize-none"
-                                value={subItem.content || ''}
-                                onChange={(e) => {
-                                  e.target.style.height = 'inherit';
-                                  e.target.style.height = `${e.target.scrollHeight}px`;
-                                  updateSubItem(dIndex, sIndex, 'content', e.target.value);
-                                }}
-                                placeholder="Pointer text..."
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                        <button onClick={() => addArrayItem(dIndex, 'bullets')} className="text-sm text-blue-600 hover:text-blue-800 mt-4 font-medium bg-blue-50 px-3 py-1 rounded">
-                          + Add Pointer
-                        </button>
-                      </div>
-                    )}
-
-                    {(detail.type === 'fields' || detail.type === 'buttons' || detail.type === 'options') && (
-                      <div className="mt-2 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                        <div className="flex items-center mb-5 border-b border-gray-100 pb-3">
-                          <span className="text-blue-600 mr-2 font-bold text-xl">ⓘ</span>
-                          <input 
-                            className="font-bold text-xl text-gray-900 bg-transparent border-none focus:outline-none w-full"
-                            value={detail.title || ''}
-                            onChange={(e) => updateDetail(dIndex, 'title', e.target.value)}
-                            placeholder={`Section Title (e.g., ${detail.type.charAt(0).toUpperCase() + detail.type.slice(1)} & Details)`}
-                          />
+                  return (
+                    <div 
+                      key={dIndex} 
+                      draggable 
+                      onDragStart={(e) => onDragStart(e, { type: 'detail', dIndex })} 
+                      onDragOver={onDragOver} 
+                      onDrop={(e) => onDrop(e, { type: 'detail', dIndex })}
+                      className={`relative group border border-transparent hover:border-blue-100 hover:bg-blue-50/30 rounded-lg p-4 transition-all ${dragContext?.type === 'detail' && dragContext.dIndex === dIndex ? 'opacity-40 border-dashed border-gray-400 bg-gray-50' : 'bg-white shadow-sm border-gray-100'}`}
+                    >
+                      {/* Control Bar (Always visible if collapsed, hover-visible if expanded) */}
+                      <div className={`absolute top-2 right-2 flex items-center space-x-2 bg-white shadow-sm border border-gray-200 rounded p-1 transition-opacity z-10 ${isDetailExpanded ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                        <div className="cursor-grab text-gray-400 hover:text-gray-600 px-2 border-r border-gray-200" title="Drag to reorder block">
+                          ⋮⋮
                         </div>
+                        <select 
+                          value={detail.type} 
+                          onChange={(e) => changeDetailType(dIndex, e.target.value)}
+                          className="text-xs border-none bg-transparent text-gray-700 font-medium focus:outline-none cursor-pointer"
+                        >
+                          <option value="text">Paragraph Text</option>
+                          <option value="bullets">Pointers (Bullets)</option>
+                          <option value="fields">Fields & Cards</option>
+                          <option value="buttons">Action Buttons</option>
+                          <option value="options">Options & Tags</option>
+                          <option value="workflow">Workflow Bar</option>
+                          <option value="notification">Notification</option>
+                          <option value="systemAction">System Action</option>
+                        </select>
+                        <button onClick={() => removeDetailBlock(dIndex)} className="text-red-500 hover:text-red-700 px-2 font-bold border-l border-gray-200">×</button>
+                      </div>
+
+                      {/* Header with Arrow (Visible in both states) */}
+                      <div className="flex items-center mb-2">
+                        <button type="button" onClick={(e) => toggleExpand(e, detailKey)} className="mr-3 w-6 h-6 flex items-center justify-center text-xs text-blue-500 hover:bg-blue-50 rounded transition-colors">
+                          {isDetailExpanded ? '▼' : '▶'}
+                        </button>
                         
-                        <div className="space-y-4">
-                          {detail.items?.map((subItem, sIndex) => (
-                            <div key={sIndex} className="bg-gray-50 border border-gray-200 rounded-md p-4 hover:border-blue-300 transition-colors">
+                        {!isDetailExpanded && (
+                          <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+                            {detail.type} {detail.title ? `— ${detail.title}` : ''}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Render block contents ONLY if expanded */}
+                      {isDetailExpanded && (
+                        <>
+                          {detail.type === 'workflow' && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mt-2">
+                              <div className="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-1">Detail Workflow</div>
                               <input
-                                className="font-bold text-blue-900 bg-transparent border-none focus:outline-none w-full mb-2 text-lg"
-                                value={subItem.name || ''}
-                                onChange={(e) => updateSubItem(dIndex, sIndex, 'name', e.target.value)}
-                                placeholder="Field Title (e.g. Body Weight)"
-                              />
-                              <textarea
-                                className="text-gray-600 bg-transparent border-none focus:outline-none w-full resize-none overflow-hidden mb-2"
-                                value={subItem.desc || ''}
-                                onChange={(e) => {
-                                  e.target.style.height = 'inherit';
-                                  e.target.style.height = `${e.target.scrollHeight}px`;
-                                  updateSubItem(dIndex, sIndex, 'desc', e.target.value);
-                                }}
-                                placeholder="Description text..."
-                              />
-                              <input
-                                className="text-gray-400 text-xs italic bg-transparent border-none focus:outline-none w-full mt-1"
-                                value={subItem.helper || ''}
-                                onChange={(e) => updateSubItem(dIndex, sIndex, 'helper', e.target.value)}
-                                placeholder="Optional helper text (e.g., Tooltip or extra info)..."
+                                className="w-full bg-transparent border-none focus:outline-none text-yellow-900 font-medium"
+                                value={detail.content || ''}
+                                onChange={(e) => updateDetail(dIndex, 'content', e.target.value)}
+                                placeholder="e.g. Patient Workbook → Vitals"
                               />
                             </div>
-                          ))}
-                        </div>
-                        <button onClick={() => addArrayItem(dIndex, 'fields')} className="text-sm text-blue-600 hover:text-blue-800 mt-4 font-medium bg-blue-50 px-3 py-1 rounded">
-                          + Add Card
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                          )}
+
+                          {(detail.type === 'notification' || detail.type === 'systemAction') && (
+                            <div className={`mt-2 p-5 rounded-md border shadow-sm ${detail.type === 'notification' ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
+                              <input
+                                className={`font-bold uppercase tracking-wider mb-2 w-full bg-transparent border-none focus:outline-none text-sm ${detail.type === 'notification' ? 'text-blue-800' : 'text-red-800'}`}
+                                value={detail.title || ''}
+                                onChange={(e) => updateDetail(dIndex, 'title', e.target.value)}
+                                placeholder="Alert Title"
+                              />
+                              <textarea
+                                className={`w-full bg-transparent border-none focus:outline-none resize-none overflow-hidden text-lg ${detail.type === 'notification' ? 'text-blue-900' : 'text-red-900'}`}
+                                value={detail.content || ''}
+                                onChange={(e) => {
+                                  e.target.style.height = 'inherit';
+                                  e.target.style.height = `${e.target.scrollHeight}px`;
+                                  updateDetail(dIndex, 'content', e.target.value);
+                                }}
+                                placeholder="Enter message..."
+                              />
+                            </div>
+                          )}
+
+                          {detail.type === 'text' && (
+                            <textarea
+                              className="w-full bg-transparent border-none focus:outline-none text-gray-700 resize-none overflow-hidden mt-2 text-lg"
+                              value={detail.content || ''}
+                              onChange={(e) => {
+                                e.target.style.height = 'inherit';
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                                updateDetail(dIndex, 'content', e.target.value);
+                              }}
+                              placeholder="Enter paragraph text..."
+                            />
+                          )}
+
+                          {detail.type === 'bullets' && (
+                            <div className="mt-2 bg-white p-4 rounded-md border border-gray-200 shadow-sm">
+                              {detail.title !== undefined && (
+                                <input 
+                                  className="font-bold text-gray-900 bg-transparent border-none focus:outline-none w-full mb-3 text-lg"
+                                  value={detail.title || ''}
+                                  onChange={(e) => updateDetail(dIndex, 'title', e.target.value)}
+                                  placeholder="Optional List Title"
+                                />
+                              )}
+                              <ul className="space-y-3">
+                                {detail.items?.map((subItem, sIndex) => (
+                                  <li key={sIndex} className="flex items-start">
+                                    <span className="text-blue-500 font-bold mr-3 mt-1">•</span>
+                                    <textarea
+                                      className="flex-1 bg-transparent border-none focus:outline-none text-gray-700 resize-none"
+                                      value={subItem.content || ''}
+                                      onChange={(e) => {
+                                        e.target.style.height = 'inherit';
+                                        e.target.style.height = `${e.target.scrollHeight}px`;
+                                        updateSubItem(dIndex, sIndex, 'content', e.target.value);
+                                      }}
+                                      placeholder="Pointer text..."
+                                    />
+                                  </li>
+                                ))}
+                              </ul>
+                              <button onClick={() => addArrayItem(dIndex, 'bullets')} className="text-sm text-blue-600 hover:text-blue-800 mt-4 font-medium bg-blue-50 px-3 py-1 rounded">
+                                + Add Pointer
+                              </button>
+                            </div>
+                          )}
+
+                          {(detail.type === 'fields' || detail.type === 'buttons' || detail.type === 'options') && (
+                            <div className="mt-2 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                              <div className="flex items-center mb-5 border-b border-gray-100 pb-3">
+                                <span className="text-blue-600 mr-2 font-bold text-xl">ⓘ</span>
+                                <input 
+                                  className="font-bold text-xl text-gray-900 bg-transparent border-none focus:outline-none w-full"
+                                  value={detail.title || ''}
+                                  onChange={(e) => updateDetail(dIndex, 'title', e.target.value)}
+                                  placeholder={`Section Title (e.g., ${detail.type.charAt(0).toUpperCase() + detail.type.slice(1)} & Details)`}
+                                />
+                              </div>
+                              
+                              <div className="space-y-4">
+                                {detail.items?.map((subItem, sIndex) => (
+                                  <div key={sIndex} className="bg-gray-50 border border-gray-200 rounded-md p-4 hover:border-blue-300 transition-colors">
+                                    <input
+                                      className="font-bold text-blue-900 bg-transparent border-none focus:outline-none w-full mb-2 text-lg"
+                                      value={subItem.name || ''}
+                                      onChange={(e) => updateSubItem(dIndex, sIndex, 'name', e.target.value)}
+                                      placeholder="Field Title (e.g. Body Weight)"
+                                    />
+                                    <textarea
+                                      className="text-gray-600 bg-transparent border-none focus:outline-none w-full resize-none overflow-hidden mb-2"
+                                      value={subItem.desc || ''}
+                                      onChange={(e) => {
+                                        e.target.style.height = 'inherit';
+                                        e.target.style.height = `${e.target.scrollHeight}px`;
+                                        updateSubItem(dIndex, sIndex, 'desc', e.target.value);
+                                      }}
+                                      placeholder="Description text..."
+                                    />
+                                    <input
+                                      className="text-gray-400 text-xs italic bg-transparent border-none focus:outline-none w-full mt-1"
+                                      value={subItem.helper || ''}
+                                      onChange={(e) => updateSubItem(dIndex, sIndex, 'helper', e.target.value)}
+                                      placeholder="Optional helper text (e.g., Tooltip or extra info)..."
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <button onClick={() => addArrayItem(dIndex, 'fields')} className="text-sm text-blue-600 hover:text-blue-800 mt-4 font-medium bg-blue-50 px-3 py-1 rounded">
+                                + Add Card
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="mt-12 pt-6 border-t border-gray-200 flex justify-center">
